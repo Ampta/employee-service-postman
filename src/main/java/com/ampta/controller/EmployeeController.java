@@ -23,7 +23,7 @@ public class EmployeeController {
 
     @PostMapping
     public ResponseEntity<ApiResponse<?>> createEmployee(@RequestBody EmployeeRequest request){
-        log.info("REST request to create employee with email: {}", request.getEmail());
+        log.info("REST request to create employee with email: {}", request.email());
         EmployeeResponse response = employeeService.createEmployee(request);
         return new ResponseEntity<>(new ApiResponse<>(true, "Employee created successfully", response), HttpStatus.CREATED);
     }

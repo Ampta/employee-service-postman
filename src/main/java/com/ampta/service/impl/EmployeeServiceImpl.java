@@ -5,10 +5,10 @@ import com.ampta.dto.EmployeeResponse;
 import com.ampta.entity.Employee;
 import com.ampta.exception.ResourceAlreadyExistsException;
 import com.ampta.exception.ResourceNotFoundException;
+import com.ampta.mapper.EmployeeMapper;
 import com.ampta.repository.EmployeeRepository;
 import com.ampta.service.EmployeeService;
 import lombok.RequiredArgsConstructor;
-import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -16,39 +16,35 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class EmployeeServiceImpl implements EmployeeService {
 
     private final EmployeeRepository employeeRepository;
-    private final ModelMapper modelMapper;
+    private final EmployeeMapper employeeMapper;
 
     @Override
     public EmployeeResponse createEmployee(EmployeeRequest request) {
-        if(employeeRepository.existsByEmail(request.getEmail().trim())){
-            throw new ResourceAlreadyExistsException("Email already exists: "+ request.getEmail());
+        if(employeeRepository.existsByEmail(request.email().trim())){
+            throw new ResourceAlreadyExistsException("Email already exists: "+ request.email());
         }
 
-        Employee employee = modelMapper.map(request, Employee.class);
+        Employee employee = employeeMapper.toEntity(request);
         Employee savedEmployee = employeeRepository.save(employee);
-        return modelMapper.map(savedEmployee, EmployeeResponse.class);
+        return employeeMapper.toResponse(savedEmployee);
     }
 
     @Override
     public List<EmployeeResponse> getAllEmployees() {
-        return employeeRepository.findAll()
-                .stream()
-                .map(employee -> modelMapper.map(employee, EmployeeResponse.class))
-                .collect(Collectors.toList());
+        return employeeMapper.toResponseList(employeeRepository.findAll());
     }
 
     @Override
     public EmployeeResponse getById(Long employeeId) {
         Employee employee = employeeRepository.findById(employeeId)
                 .orElseThrow(() -> new ResourceNotFoundException("Employee not found with ID: " + employeeId));
-        return modelMapper.map(employee, EmployeeResponse.class);
+        return employeeMapper.toResponse(employee);
     }
 
     @Override
@@ -56,19 +52,19 @@ public class EmployeeServiceImpl implements EmployeeService {
         Employee exEmployee = employeeRepository.findById(employeeId)
                 .orElseThrow(() -> new ResourceNotFoundException("Employee not found with ID: " + employeeId));
 
-        String trimmedEmail = request.getEmail() != null ? request.getEmail().trim() : null;
+        String trimmedEmail = request.email() != null ? request.email().trim() : null;
         if (trimmedEmail != null && !trimmedEmail.equalsIgnoreCase(exEmployee.getEmail()) && employeeRepository.existsByEmail(trimmedEmail)) {
-            throw new ResourceAlreadyExistsException("Email already exists: " + request.getEmail());
+            throw new ResourceAlreadyExistsException("Email already exists: " + request.email());
         }
 
-        exEmployee.setName(request.getName());
-        exEmployee.setEmail(trimmedEmail != null ? trimmedEmail : request.getEmail());
-        exEmployee.setPassword(request.getPassword());
-        exEmployee.setDepartment(request.getDepartment());
-        exEmployee.setSalary(request.getSalary());
+        exEmployee.setName(request.name());
+        exEmployee.setEmail(trimmedEmail != null ? trimmedEmail : request.email());
+        exEmployee.setPassword(request.password());
+        exEmployee.setDepartment(request.department());
+        exEmployee.setSalary(request.salary());
 
         Employee savedEmployee = employeeRepository.save(exEmployee);
-        return modelMapper.map(savedEmployee, EmployeeResponse.class);
+        return employeeMapper.toResponse(savedEmployee);
     }
 
     @Override
@@ -92,6 +88,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 
         Page<Employee> employeePage = employeeRepository.findAll(pageable);
 
-        return employeePage.map(employee -> modelMapper.map(employee, EmployeeResponse.class));
+        return employeePage.map(employeeMapper::toResponse);
     }
 }
+
