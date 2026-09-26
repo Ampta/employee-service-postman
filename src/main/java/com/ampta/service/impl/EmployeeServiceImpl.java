@@ -53,15 +53,16 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     @Override
     public EmployeeResponse updateEmployee(Long employeeId, EmployeeRequest request) {
-        if(employeeRepository.existsByEmail(request.getEmail().trim())){
-            throw new ResourceAlreadyExistsException("Email already exists: "+ request.getEmail());
-        }
-
         Employee exEmployee = employeeRepository.findById(employeeId)
                 .orElseThrow(() -> new ResourceNotFoundException("Employee not found with ID: " + employeeId));
 
+        String trimmedEmail = request.getEmail() != null ? request.getEmail().trim() : null;
+        if (trimmedEmail != null && !trimmedEmail.equalsIgnoreCase(exEmployee.getEmail()) && employeeRepository.existsByEmail(trimmedEmail)) {
+            throw new ResourceAlreadyExistsException("Email already exists: " + request.getEmail());
+        }
+
         exEmployee.setName(request.getName());
-        exEmployee.setEmail(request.getEmail());
+        exEmployee.setEmail(trimmedEmail != null ? trimmedEmail : request.getEmail());
         exEmployee.setPassword(request.getPassword());
         exEmployee.setDepartment(request.getDepartment());
         exEmployee.setSalary(request.getSalary());
